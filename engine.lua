@@ -269,27 +269,6 @@ function engine.newScene(renderWidth, renderHeight)
         end
     end
 
-    -- call in love.update for a simple first person camera movement system
-    scene.basicCamera = function (self, dt)
-        local speed = 2 * dt
-        if love.keyboard.isDown("lctrl") then
-            speed = speed * 10
-        end
-        local Camera = engine.camera
-        local pos = Camera.pos
-        
-        local mul = love.keyboard.isDown("w") and 1 or (love.keyboard.isDown("s") and -1 or 0)
-        pos.x = pos.x + math.sin(math.pi - Camera.angle.x) * mul * speed
-        pos.z = pos.z + math.cos(math.pi - Camera.angle.x) * mul * speed
-        
-        local mul = love.keyboard.isDown("d") and -1 or (love.keyboard.isDown("a") and 1 or 0)
-        pos.x = pos.x + math.cos(math.pi + Camera.angle.x) * mul * speed
-        pos.z = pos.z + math.sin(math.pi + Camera.angle.x) * mul * speed
-
-        local mul = love.keyboard.isDown("lshift") and 1 or (love.keyboard.isDown("space") and -1 or 0)
-        pos.y = pos.y + mul * speed
-    end
-
     -- renders the models in the scene to the threeCanvas
     -- will draw threeCanvas if drawArg is not given or is true (use if you want to scale the game canvas to window)
     scene.render = function (self, drawArg, timeElapsed)

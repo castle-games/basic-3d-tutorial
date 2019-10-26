@@ -1,6 +1,8 @@
 require "constants"
 Engine = require "engine"
+cpml = require "cpml"
 
+EndPosition = {0, 0}
 WorldSize = 20
 Map =  [[
         e   
@@ -15,8 +17,14 @@ xx xxxxxxxxx
   s         
 ]]
 
+Blocks = {}
+WonGame = false
+
 function resetGame()
-   
+    Engine.camera.pos.x = StartPosition[1] + 0.5
+    Engine.camera.pos.z = StartPosition[2] + 0.5
+    Engine.camera.angle = cpml.vec3(0, 0, 0)
+    WonGame = false
 end
 
 function ground()
@@ -31,6 +39,8 @@ function ground()
 end
 
 function box(x, z)
+    table.insert(Blocks, {x, z})
+
     local m1 = rect({
         {0, 0, 1,  0,1,  0,0,1},
         {0, 1, 1,  0,0,  0,0,1},
@@ -151,8 +161,9 @@ function love.load()
             if char == 'x' then
                 box(x, z)
             elseif char == 's' then
-                Engine.camera.pos.x = x + 0.5
-                Engine.camera.pos.z = z + 0.5
+                StartPosition = {x, z}
+            elseif char == 'e' then
+                EndPosition = {x, z}
             end
         end
 
@@ -161,6 +172,17 @@ function love.load()
 
     ground()
     skybox()
+
+    resetGame()
+end
+
+function isInSquare(pos, x, z)
+    local d = 0.1
+
+    local camX = pos.x
+    local camZ = pos.z
+
+    return camX >= x - d and camX <= x + 1 + d and camZ >= z - d and camZ <= z + 1 + d
 end
 
 --[[
@@ -212,12 +234,13 @@ function love.keypressed(key)
         love.mouse.setRelativeMode(not isRelative)
     end
 
-    --local turnDirection = love.keyboard.isDown("left") and -1 or (love.keyboard.isDown("right") and 1 or 0)
+    if love.keyboard.isDown("space") and WonGame then
+        resetGame()
+    end
 end
 
 function love.update(dt)
     TimeElapsed = TimeElapsed + dt
-    Scene:basicCamera(dt)
     
     LogicAccumulator = LogicAccumulator+dt
 
@@ -229,6 +252,38 @@ function love.update(dt)
         PhysicsStep = true
     else
         return
+    end
+
+    local speed = 2 * dt
+    if love.keyboard.isDown("lctrl") then
+        speed = speed * 10
+    end
+    local Camera = Engine.camera
+    local pos = Camera.pos
+    local newPos = {}
+    
+    local mul = love.keyboard.isDown("w") and 1 or (love.keyboard.isDown("s") and -1 or 0)
+    newPos.x = pos.x + math.sin(math.pi - Camera.angle.x) * mul * speed
+    newPos.z = pos.z + math.cos(math.pi - Camera.angle.x) * mul * speed
+    
+    local mul = love.keyboard.isDown("d") and -1 or (love.keyboard.isDown("a") and 1 or 0)
+    newPos.x = newPos.x + math.cos(math.pi + Camera.angle.x) * mul * speed
+    newPos.z = newPos.z + math.sin(math.pi + Camera.angle.x) * mul * speed
+
+    local canMove = true
+    for k,v in pairs(Blocks) do
+        if isInSquare(newPos, v[1], v[2]) then
+            canMove = false
+        end
+    end
+
+    if canMove then
+        pos.x = newPos.x
+        pos.z = newPos.z
+    end
+
+    if isInSquare(Engine.camera.pos, EndPosition[1], EndPosition[2]) then
+        WonGame = true
     end
 end
 
@@ -243,6 +298,10 @@ function love.draw()
             love.graphics.print("[c] to capture or release mouse input", GraphicsWidth - 350, 20)
             
             love.graphics.setColor(1, 1, 1, 1)
+
+            if WonGame then
+                love.graphics.print("You won! Press space to restart", GraphicsWidth * 0.5 - 100, GraphicsHeight * 0.5 - 20)
+            end
         end, true
     )
 end
