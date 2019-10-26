@@ -2,6 +2,18 @@ require "constants"
 Engine = require "engine"
 
 WorldSize = 20
+Map =  [[
+        e   
+xxxxxxxx xxx
+xx x       x
+xx xx  xxx x
+xxxxxx   xxx
+x    xxx   x
+x xxxx   x x
+x      x   x
+xx xxxxxxxxx
+  s         
+]]
 
 function resetGame()
    
@@ -11,41 +23,47 @@ function ground()
     local textureSize = 0.2
 
     rect({
-        {WorldSize, -1, -WorldSize,  0,0,  0,1,0},
-        {WorldSize, -1, WorldSize,  0,WorldSize * textureSize,  0,1,0},
-        {-WorldSize, -1, WorldSize,  WorldSize * textureSize,WorldSize * textureSize,  0,1,0},
-        {-WorldSize, -1, -WorldSize,  WorldSize * textureSize,0,  0,1,0}
+        {WorldSize, 0, -WorldSize,  0,0,  0,1,0},
+        {WorldSize, 0, WorldSize,  0,WorldSize * textureSize,  0,1,0},
+        {-WorldSize, 0, WorldSize,  WorldSize * textureSize,WorldSize * textureSize,  0,1,0},
+        {-WorldSize, 0, -WorldSize,  WorldSize * textureSize,0,  0,1,0}
     }, groundImage, 1.0)
 end
 
-function box()
-    rect({
-        {-1, -1, 1,  0,1,  0,0,1},
-        {-1, 1, 1,  0,0,  0,0,1},
+function box(x, z)
+    local m1 = rect({
+        {0, 0, 1,  0,1,  0,0,1},
+        {0, 1, 1,  0,0,  0,0,1},
         {1, 1, 1,  1,0,  0,0,1},
-        {1, -1, 1,  1,1,  0,0,1}
+        {1, 0, 1,  1,1,  0,0,1}
     }, wallImage, 1.0)
 
-    rect({
-        {1, -1, -1,  0,1,  1,0,0},
-        {1, 1, -1,  0,0,  1,0,0},
+    local m2 = rect({
+        {1, 0, 0,  0,1,  1,0,0},
+        {1, 1, 0,  0,0,  1,0,0},
         {1, 1, 1,  1,0,  1,0,0},
-        {1, -1, 1,  1,1,  1,0,0}
+        {1, 0, 1,  1,1,  1,0,0}
     }, wallImage, 1.0)
 
-    rect({
-        {-1, -1, -1,  0,1,  -1,0,0},
-        {-1, 1, -1,  0,0,  -1,0,0},
-        {-1, 1, 1,  1,0,  -1,0,0},
-        {-1, -1, 1,  1,1,  -1,0,0}
+    local m3 = rect({
+        {0, 0, 0,  0,1,  -1,0,0},
+        {0, 1, 0,  0,0,  -1,0,0},
+        {0, 1, 1,  1,0,  -1,0,0},
+        {0, 0, 1,  1,1,  -1,0,0}
     }, wallImage, 1.0)
 
-    rect({
-        {-1, -1, -1,  0,1,  0,0,-1},
-        {-1, 1, -1,  0,0,  0,0,-1},
-        {1, 1, -1,  1,0,  0,0,-1},
-        {1, -1, -1,  1,1,  0,0,-1}
+    local m4 = rect({
+        {0, 0, 0,  0,1,  0,0,-1},
+        {0, 1, 0,  0,0,  0,0,-1},
+        {1, 1, 0,  1,0,  0,0,-1},
+        {1, 0, 0,  1,1,  0,0,-1}
     }, wallImage, 1.0)
+
+    local models = {m1, m2, m3, m4}
+
+    for k,v in pairs(models) do
+        v:setTransform({x, 0, z})
+    end
 end
 
 function skybox()
@@ -126,8 +144,22 @@ function love.load()
     groundImage = love.graphics.newImage("assets/ground.png")
     groundImage:setWrap('repeat','repeat')
 
+    local z = 0
+    for line in Map:gmatch("[^\r\n]+") do
+        for x = 0, string.len(line) do
+            local char = string.sub(line, x, x)
+            if char == 'x' then
+                box(x, z)
+            elseif char == 's' then
+                Engine.camera.pos.x = x + 0.5
+                Engine.camera.pos.z = z + 0.5
+            end
+        end
+
+        z = z + 1
+    end
+
     ground()
-    box()
     skybox()
 end
 

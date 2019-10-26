@@ -214,8 +214,8 @@ function engine.newScene(renderWidth, renderHeight)
             }
 
             if (length(normal) > 0.0) {
-                float ambientStrength = 0.3;
-                float diffuseStrength = 0.5;
+                float ambientStrength = 0.5;
+                float diffuseStrength = 0.6;
                 float specularStrength = 0.8;
 
                 vec3 norm = normalize(normal);
@@ -248,13 +248,13 @@ function engine.newScene(renderWidth, renderHeight)
 
     engine.camera = {
         pos = cpml.vec3(2.5, 0.3, -3.5),
-        angle = cpml.vec3(math.pi + 0.5, 0, 0),
+        angle = cpml.vec3(0, 0, 0),
         perspective = TransposeMatrix(cpml.mat4.from_perspective(60, renderWidth/renderHeight, 0.1, 10000)),
         transform = cpml.mat4(),
     }
     -- camera.perspective = TransposeMatrix(cpml.mat4.from_perspective(90, love.graphics.getWidth()/love.graphics.getHeight(), 0.001, 10000))
 
-    scene.lightPos = {10,2,2}
+    scene.lightPos = {100,10,20}
 
     -- should be called in love.update every frame
     scene.update = function (self)
@@ -271,7 +271,7 @@ function engine.newScene(renderWidth, renderHeight)
 
     -- call in love.update for a simple first person camera movement system
     scene.basicCamera = function (self, dt)
-        local speed = 5 * dt
+        local speed = 2 * dt
         if love.keyboard.isDown("lctrl") then
             speed = speed * 10
         end
