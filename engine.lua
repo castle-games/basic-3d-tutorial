@@ -78,7 +78,6 @@ function engine.newModel(verts, texture, coords, color, format, scale)
 
             local cross = UnitVectorOf(CrossProduct(sn1,sn2))
 
-            print(cross[1] .. ' ' .. cross[2] .. ' ' .. cross[3])
             verts[i][6] = cross[1]
             verts[i][7] = cross[2]
             verts[i][8] = cross[3]
@@ -214,20 +213,24 @@ function engine.newScene(renderWidth, renderHeight)
                 discard;
             }
 
-            float ambientStrength = 0.25;
-            float diffuseStrength = 0.25;
-            float specularStrength = 0.25;
+            if (length(normal) > 0.0) {
+                float ambientStrength = 0.3;
+                float diffuseStrength = 0.5;
+                float specularStrength = 0.8;
 
-            vec3 norm = normalize(normal);
-            vec3 lightDir = normalize(light_pos - frag_pos);
+                vec3 norm = normalize(normal);
+                vec3 lightDir = normalize(light_pos - frag_pos);
 
-            float diffuse = max(dot(norm, lightDir), 0.0);
+                float diffuse = max(dot(norm, lightDir), 0.0);
 
-            vec3 viewDir = normalize(view_pos - frag_pos);
-            vec3 reflectDir = reflect(-lightDir, normal); 
-            float specular = 0.5 * pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+                vec3 viewDir = normalize(view_pos - frag_pos);
+                vec3 reflectDir = reflect(-lightDir, normal); 
+                float specular = 0.5 * pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
 
-            texturecolor.rgb *= ambientStrength + diffuse * diffuseStrength + specular * specularStrength;
+                texturecolor.rgb *= ambientStrength + diffuse * diffuseStrength + specular * specularStrength;
+            } else {
+                texturecolor.rgb *= 0.6;
+            }
 
             return color * texturecolor;
         }

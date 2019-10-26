@@ -1,8 +1,105 @@
 require "constants"
 Engine = require "engine"
 
+WorldSize = 20
+
 function resetGame()
    
+end
+
+function ground()
+    local textureSize = 0.2
+
+    rect({
+        {WorldSize, -1, -WorldSize,  0,0,  0,1,0},
+        {WorldSize, -1, WorldSize,  0,WorldSize * textureSize,  0,1,0},
+        {-WorldSize, -1, WorldSize,  WorldSize * textureSize,WorldSize * textureSize,  0,1,0},
+        {-WorldSize, -1, -WorldSize,  WorldSize * textureSize,0,  0,1,0}
+    }, groundImage, 1.0)
+end
+
+function box()
+    rect({
+        {-1, -1, 1,  0,1,  0,0,1},
+        {-1, 1, 1,  0,0,  0,0,1},
+        {1, 1, 1,  1,0,  0,0,1},
+        {1, -1, 1,  1,1,  0,0,1}
+    }, wallImage, 1.0)
+
+    rect({
+        {1, -1, -1,  0,1,  1,0,0},
+        {1, 1, -1,  0,0,  1,0,0},
+        {1, 1, 1,  1,0,  1,0,0},
+        {1, -1, 1,  1,1,  1,0,0}
+    }, wallImage, 1.0)
+
+    rect({
+        {-1, -1, -1,  0,1,  -1,0,0},
+        {-1, 1, -1,  0,0,  -1,0,0},
+        {-1, 1, 1,  1,0,  -1,0,0},
+        {-1, -1, 1,  1,1,  -1,0,0}
+    }, wallImage, 1.0)
+
+    rect({
+        {-1, -1, -1,  0,1,  0,0,-1},
+        {-1, 1, -1,  0,0,  0,0,-1},
+        {1, 1, -1,  1,0,  0,0,-1},
+        {1, -1, -1,  1,1,  0,0,-1}
+    }, wallImage, 1.0)
+end
+
+function skybox()
+    local bottom = -15
+    local top = 15
+    local dy = 0.2
+
+    -- front
+    rect({
+        {-WorldSize, bottom, -WorldSize,     0.25, 0.6666,   0,0,0},
+        {-WorldSize, top, -WorldSize,      0.25, 0.3333,   0,0,0},
+        {WorldSize, top, -WorldSize,       0.5, 0.3333,   0,0,0},
+        {WorldSize, bottom, -WorldSize,      0.5, 0.6666,   0,0,0}
+    }, skyboxImage, 1.0)
+
+    -- top
+    rect({
+        {-WorldSize, top - dy, -WorldSize,     0.25, 0.3333,   0,0,0},
+        {WorldSize, top - dy, -WorldSize,      0.5, 0.3333,   0,0,0},
+        {WorldSize, top - dy, WorldSize,       0.5, 0,   0,0,0},
+        {-WorldSize, top - dy, WorldSize,      0.25, 0,   0,0,0}
+    }, skyboxImage, 1.0)
+
+    -- right
+    rect({
+        {WorldSize, bottom, -WorldSize,     0.5, 0.6666,   0,0,0},
+        {WorldSize, top, -WorldSize,      0.5, 0.3333,   0,0,0},
+        {WorldSize, top, WorldSize,       0.75, 0.3333,   0,0,0},
+        {WorldSize, bottom, WorldSize,      0.75, 0.6666,   0,0,0}
+    }, skyboxImage, 1.0)
+
+    -- back
+    rect({
+        {WorldSize, bottom, WorldSize,     0.75, 0.6666,   0,0,0},
+        {WorldSize, top, WorldSize,      0.75, 0.3333,   0,0,0},
+        {-WorldSize, top, WorldSize,     1, 0.3333,   0,0,0},
+        {-WorldSize, bottom, WorldSize,    1, 0.66666,   0,0,0}
+    }, skyboxImage, 1.0)
+
+    -- left
+    rect({
+        {-WorldSize, bottom, WorldSize,     0, 0.6666,   0,0,0},
+        {-WorldSize, top, WorldSize,      0, 0.3333,   0,0,0},
+        {-WorldSize, top, -WorldSize,     0.25, 0.3333,   0,0,0},
+        {-WorldSize, bottom, -WorldSize,    0.25, 0.6666,   0,0,0}
+    }, skyboxImage, 1.0)
+
+    -- bottom
+    rect({
+        {-WorldSize, bottom + dy, -WorldSize - 0.1,     0.25, 0.6666,   0,0,0},
+        {-WorldSize, bottom + dy, WorldSize + 0.1,      0.25, 1.0,   0,0,0},
+        {WorldSize, bottom + dy, WorldSize + 0.1,       0.5, 1.0,   0,0,0},
+        {WorldSize, bottom + dy, -WorldSize - 0.1,      0.5, 0.6666,   0,0,0}
+    }, skyboxImage, 1.0)
 end
 
 function love.load()
@@ -20,33 +117,18 @@ function love.load()
 
     Scene = Engine.newScene(GraphicsWidth, GraphicsHeight)
 
-    rectColor({
-        {-1, -1, 1,  0,0,  0,0,1},
-        {-1, 1, 1,  0,0,  0,0,1},
-        {1, 1, 1,  0,0,  0,0,1},
-        {1, -1, 1,  0,0,  0,0,1}
-    }, {1,0,0}, 1.0)
+    wallImage = love.graphics.newImage("assets/wall.png")
+    wallImage:setWrap('repeat','repeat')
 
-    rectColor({
-        {1, -1, -1,  0,0,  1,0,0},
-        {1, 1, -1,  0,0,  1,0,0},
-        {1, 1, 1,  0,0,  1,0,0},
-        {1, -1, 1,  0,0,  1,0,0}
-    }, {1,0,0}, 1.0)
+    skyboxImage = love.graphics.newImage("assets/skybox.png")
+    skyboxImage:setWrap('repeat','repeat')
 
-    rectColor({
-        {-1, -1, -1,  0,0,  -1,0,0},
-        {-1, 1, -1,  0,0,  -1,0,0},
-        {-1, 1, 1,  0,0,  -1,0,0},
-        {-1, -1, 1,  0,0,  -1,0,0}
-    }, {1,0,0}, 1.0)
+    groundImage = love.graphics.newImage("assets/ground.png")
+    groundImage:setWrap('repeat','repeat')
 
-    rectColor({
-        {-1, -1, -1,  0,0,  0,0,-1},
-        {-1, 1, -1,  0,0,  0,0,-1},
-        {1, 1, -1,  0,0,  0,0,-1},
-        {1, -1, -1,  0,0,  0,0,-1}
-    }, {1,0,0}, 1.0)
+    ground()
+    box()
+    skybox()
 end
 
 --[[
