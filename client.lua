@@ -262,11 +262,11 @@ function love.update(dt)
     local pos = Camera.pos
     local newPos = {}
     
-    local mul = love.keyboard.isDown("w") and 1 or (love.keyboard.isDown("s") and -1 or 0)
+    local mul = (love.keyboard.isDown("w") or love.keyboard.isDown("up")) and 1 or ((love.keyboard.isDown("s") or love.keyboard.isDown("down")) and -1 or 0)
     newPos.x = pos.x + math.sin(math.pi - Camera.angle.x) * mul * speed
     newPos.z = pos.z + math.cos(math.pi - Camera.angle.x) * mul * speed
     
-    local mul = love.keyboard.isDown("d") and -1 or (love.keyboard.isDown("a") and 1 or 0)
+    local mul = (love.keyboard.isDown("d") or love.keyboard.isDown("right")) and -1 or ((love.keyboard.isDown("a") or love.keyboard.isDown("left")) and 1 or 0)
     newPos.x = newPos.x + math.cos(math.pi + Camera.angle.x) * mul * speed
     newPos.z = newPos.z + math.sin(math.pi + Camera.angle.x) * mul * speed
 
