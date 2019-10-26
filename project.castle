@@ -1,5 +1,4 @@
 main: client.lua
 owner: jesse
-title: 3D
+title: Basic 3D Tutorial
 primaryColor: 89CFF0
-draft: true
