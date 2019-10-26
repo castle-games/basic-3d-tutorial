@@ -21,10 +21,31 @@ function love.load()
     Scene = Engine.newScene(GraphicsWidth, GraphicsHeight)
 
     rectColor({
-        {-1, -1, 1},
-        {-1, 1, 1},
-        {1, 1, 1},
-        {1, -1, 1}
+        {-1, -1, 1,  0,0,  0,0,1},
+        {-1, 1, 1,  0,0,  0,0,1},
+        {1, 1, 1,  0,0,  0,0,1},
+        {1, -1, 1,  0,0,  0,0,1}
+    }, {1,0,0}, 1.0)
+
+    rectColor({
+        {1, -1, -1,  0,0,  1,0,0},
+        {1, 1, -1,  0,0,  1,0,0},
+        {1, 1, 1,  0,0,  1,0,0},
+        {1, -1, 1,  0,0,  1,0,0}
+    }, {1,0,0}, 1.0)
+
+    rectColor({
+        {-1, -1, -1,  0,0,  -1,0,0},
+        {-1, 1, -1,  0,0,  -1,0,0},
+        {-1, 1, 1,  0,0,  -1,0,0},
+        {-1, -1, 1,  0,0,  -1,0,0}
+    }, {1,0,0}, 1.0)
+
+    rectColor({
+        {-1, -1, -1,  0,0,  0,0,-1},
+        {-1, 1, -1,  0,0,  0,0,-1},
+        {1, 1, -1,  0,0,  0,0,-1},
+        {1, -1, -1,  0,0,  0,0,-1}
     }, {1,0,0}, 1.0)
 end
 
@@ -45,9 +66,7 @@ function modelFromCoords(coords, texture, scale)
 end
 
 function modelFromCoordsColor(coords, color, scale)
-    local model = Engine.newModel(coords, nil, nil, color, { 
-        {"VertexPosition", "float", 3}, 
-    }, scale)
+    local model = Engine.newModel(coords, nil, nil, color, nil, scale)
     table.insert(Scene.modelList, model)
     return model
 end
@@ -61,17 +80,13 @@ function addRectVerts(obj, coords)
 end
 
 function rectColor(coords, color, scale)
-    local model = Engine.newModel({ coords[1], coords[2], coords[4], coords[2], coords[3], coords[4] }, nil, nil, color, { 
-        {"VertexPosition", "float", 3}, 
-    }, scale)
+    local model = Engine.newModel({ coords[1], coords[2], coords[4], coords[2], coords[3], coords[4] }, nil, nil, color, nil, scale)
     table.insert(Scene.modelList, model)
     return model
 end
 
 function triColor(coords, color, scale)
-    local model = Engine.newModel({ coords[1], coords[2], coords[3] }, nil, nil, color, { 
-        {"VertexPosition", "float", 3}, 
-    }, scale)
+    local model = Engine.newModel({ coords[1], coords[2], coords[3] }, nil, nil, color, nil, scale)
     table.insert(Scene.modelList, model)
     return model
 end

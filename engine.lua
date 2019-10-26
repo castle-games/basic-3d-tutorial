@@ -26,8 +26,9 @@ function engine.newModel(verts, texture, coords, color, format, scale)
     end
     if format == nil then
         format = { 
-            {"VertexPosition", "float", 3}, 
-            {"VertexTexCoord", "float", 2}, 
+            {"VertexPosition", "float", 3},
+            {"VertexTexCoord", "float", 2},
+            {"VertexNormal", "float", 3},
         }
     end
     if texture == nil then
@@ -56,6 +57,31 @@ function engine.newModel(verts, texture, coords, color, format, scale)
         if #verts[i] < 5 then
             verts[i][4] = love.math.random()
             verts[i][5] = love.math.random()
+        end
+
+        -- if not given normals, figure it out
+        if #verts[i] < 8 then
+            local polyindex = math.floor((i-1)/3)
+            local polyfirst = polyindex*3 +1
+            local polysecond = polyindex*3 +2
+            local polythird = polyindex*3 +3
+
+            local sn1 = {}
+            sn1[1] = verts[polythird][1] - verts[polysecond][1]
+            sn1[2] = verts[polythird][2] - verts[polysecond][2]
+            sn1[3] = verts[polythird][3] - verts[polysecond][3]
+
+            local sn2 = {}
+            sn2[1] = verts[polysecond][1] - verts[polyfirst][1]
+            sn2[2] = verts[polysecond][2] - verts[polyfirst][2]
+            sn2[3] = verts[polysecond][3] - verts[polyfirst][3]
+
+            local cross = UnitVectorOf(CrossProduct(sn1,sn2))
+
+            print(cross[1] .. ' ' .. cross[2] .. ' ' .. cross[3])
+            verts[i][6] = cross[1]
+            verts[i][7] = cross[2]
+            verts[i][8] = cross[3]
         end
     end
 
@@ -155,11 +181,24 @@ function engine.newScene(renderWidth, renderHeight)
     scene.threeShader = love.graphics.newShader[[
         uniform highp mat4 view;
         uniform highp mat4 model_matrix;
+        uniform highp mat4 model_matrix_inverse;
+        uniform highp vec3 light_pos;
+        uniform highp vec3 view_pos;
+
+        varying highp vec3 frag_pos;
+        varying highp vec3 normal;
 
         #ifdef VERTEX
+        attribute highp vec4 VertexNormal;
+
         vec4 position(mat4 transform_projection, vec4 vertex_position) {
+            normal = vec3(model_matrix_inverse * vec4(VertexNormal));
+            
             vec4 p = vertex_position;
             vec4 result = view * model_matrix * p;
+
+            frag_pos = vec3(model_matrix * p);
+
             return result;
         }
         #endif
@@ -174,6 +213,21 @@ function engine.newScene(renderWidth, renderHeight)
             {
                 discard;
             }
+
+            float ambientStrength = 0.25;
+            float diffuseStrength = 0.25;
+            float specularStrength = 0.25;
+
+            vec3 norm = normalize(normal);
+            vec3 lightDir = normalize(light_pos - frag_pos);
+
+            float diffuse = max(dot(norm, lightDir), 0.0);
+
+            vec3 viewDir = normalize(view_pos - frag_pos);
+            vec3 reflectDir = reflect(-lightDir, normal); 
+            float specular = 0.5 * pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+
+            texturecolor.rgb *= ambientStrength + diffuse * diffuseStrength + specular * specularStrength;
 
             return color * texturecolor;
         }
@@ -190,12 +244,14 @@ function engine.newScene(renderWidth, renderHeight)
     scene.modelList = {}
 
     engine.camera = {
-        pos = cpml.vec3(0, 0.3, -1),
-        angle = cpml.vec3(math.pi, 0, 0),
+        pos = cpml.vec3(2.5, 0.3, -3.5),
+        angle = cpml.vec3(math.pi + 0.5, 0, 0),
         perspective = TransposeMatrix(cpml.mat4.from_perspective(60, renderWidth/renderHeight, 0.1, 10000)),
         transform = cpml.mat4(),
     }
     -- camera.perspective = TransposeMatrix(cpml.mat4.from_perspective(90, love.graphics.getWidth()/love.graphics.getHeight(), 0.001, 10000))
+
+    scene.lightPos = {10,2,2}
 
     -- should be called in love.update every frame
     scene.update = function (self)
@@ -256,11 +312,14 @@ function engine.newScene(renderWidth, renderHeight)
         t:rotate(t, a.z, cpml.vec3.unit_z)
         t:translate(t, p)
         self.threeShader:send("view", Camera.perspective * TransposeMatrix(Camera.transform))
-        
+        self.threeShader:send("light_pos", self.lightPos)
+        self.threeShader:send("view_pos", {Camera.pos.x, Camera.pos.y, Camera.pos.z})
+
         for i=1, #self.modelList do
             local model = self.modelList[i]
             if model ~= nil and model.visible and #model.verts > 0 then
                 self.threeShader:send("model_matrix", model.transform)
+                self.threeShader:send("model_matrix_inverse", TransposeMatrix(InvertMatrix(model.transform)))
 
                 love.graphics.setWireframe(model.wireframe)
                 if model.culling then
