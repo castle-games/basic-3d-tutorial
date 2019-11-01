@@ -214,9 +214,9 @@ function engine.newScene(renderWidth, renderHeight)
             }
 
             if (length(normal) > 0.0) {
-                float ambientStrength = 0.5;
-                float diffuseStrength = 0.6;
-                float specularStrength = 0.8;
+                float ambientStrength = 0.8;
+                float diffuseStrength = 0.9;
+                float specularStrength = 1.0;
 
                 vec3 norm = normalize(normal);
                 vec3 lightDir = normalize(light_pos - frag_pos);
