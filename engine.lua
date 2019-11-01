@@ -214,9 +214,14 @@ function engine.newScene(renderWidth, renderHeight)
             }
 
             if (length(normal) > 0.0) {
-                float ambientStrength = 0.8;
-                float diffuseStrength = 0.9;
-                float specularStrength = 1.0;
+                float ambientStrength = 1.2;
+                float diffuseStrength = 2.0;
+                float specularStrength = 1.8;
+
+                // the ground
+                if (normal.y > 0.8) {
+                    ambientStrength = 0.3;
+                }
 
                 vec3 norm = normalize(normal);
                 vec3 lightDir = normalize(light_pos - frag_pos);
@@ -229,7 +234,7 @@ function engine.newScene(renderWidth, renderHeight)
 
                 texturecolor.rgb *= ambientStrength + diffuse * diffuseStrength + specular * specularStrength;
             } else {
-                texturecolor.rgb *= 0.6;
+                texturecolor.rgb *= vec3(1.8, 1.0, 1.0);
             }
 
             return color * texturecolor;
