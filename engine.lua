@@ -176,6 +176,59 @@ function engine.newScene(renderWidth, renderHeight)
         {"VertexPosition", "float", 3},
     }, particleVerts, "points")
 
+
+
+    local explosionParticleVerts = {}
+    for i = 0, 100000 do
+        table.insert(explosionParticleVerts, {
+            0.0,
+            -10.0,
+            0.0,
+            0.0,
+            -10.0,
+            0.0,
+            0.0,
+        })
+    end
+    scene.explosionParticles = love.graphics.newMesh({
+        {"VertexPosition", "float", 3},
+        {"endPosition", "float", 3},
+        {"startTime", "float", 1},
+        {"explosionSize", "float", 1}
+    }, explosionParticleVerts, "points")
+    --scene.explosionParticles:setTexture(love.graphics.newImage("assets/explosion.png"))
+    scene.currentExplosionIdx = 1
+
+    SPREAD = 0.2
+    scene.shoot = function (self, x, y, z, targetX, targetY, targetZ)
+        for i = 1, 40 do
+            local rx = (math.random() - 0.5)
+            local ry = (math.random() - 0.5)
+            local rz = (math.random() - 0.5)
+
+            explosionParticleVerts[scene.currentExplosionIdx] = {
+                x + rx * SPREAD,
+                y + ry * SPREAD,
+                z + rz * SPREAD,
+                targetX + rx * SPREAD,
+                targetY + ry * SPREAD,
+                targetZ + rz * SPREAD,
+                TimeElapsed + math.random() * 0.3,
+                1.0,
+            }
+
+            scene.currentExplosionIdx = scene.currentExplosionIdx + 1
+            if scene.currentExplosionIdx >= 100000 then
+                scene.currentExplosionIdx = 1
+            end
+        end
+
+        scene.explosionParticles:setVertices(explosionParticleVerts)
+    end
+
+
+
+
     -- define the shaders used in rendering the scene
     scene.threeShader = love.graphics.newShader[[
         uniform highp mat4 view;
@@ -183,6 +236,7 @@ function engine.newScene(renderWidth, renderHeight)
         uniform highp mat4 model_matrix_inverse;
         uniform highp vec3 light_pos;
         uniform highp vec3 view_pos;
+        uniform highp float time_elapsed;
 
         varying highp vec3 frag_pos;
         varying highp vec3 normal;
@@ -206,6 +260,12 @@ function engine.newScene(renderWidth, renderHeight)
         vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
             vec2 coords = texture_coords;
 
+            // if ghost
+            if (length(normal) > 9.0) {
+                coords.y *= 1.2;
+                coords.y += cos(coords.y + time_elapsed * 3.0) * 0.1 - 0.1;
+            }
+
             vec4 texturecolor = Texel(texture, coords);
             // if the alpha here is close to zero just don't draw anything here
             if (texturecolor.a == 0.0)
@@ -213,7 +273,7 @@ function engine.newScene(renderWidth, renderHeight)
                 discard;
             }
 
-            if (length(normal) > 0.0) {
+            if (length(normal) > 0.0 && length(normal) < 10.0) {
                 float ambientStrength = 1.2;
                 float diffuseStrength = 2.0;
                 float specularStrength = 1.8;
@@ -233,11 +293,78 @@ function engine.newScene(renderWidth, renderHeight)
                 float specular = 0.5 * pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
 
                 texturecolor.rgb *= ambientStrength + diffuse * diffuseStrength + specular * specularStrength;
-            } else {
+            } else if (length(normal) < 10.0) {
                 texturecolor.rgb *= vec3(1.8, 1.0, 1.0);
             }
 
-            return color * texturecolor;
+            // if ghost
+            float alpha = 1.0;
+            if (length(normal) > 9.0) {
+                alpha = (cos(time_elapsed) + 1.0) * 0.2 + 0.4;
+            }
+
+            float fogDist = length(frag_pos - view_pos);
+            float fogAmount = 0.0;
+            if (fogDist > 0.5) {
+                fogAmount = (fogDist - 0.5) / 3.0;
+            }
+
+            if (fogAmount > 0.8) {
+                fogAmount = 0.8;
+            }
+
+            if (length(normal) == 0.0) {
+                fogAmount = 0.0;
+            }
+
+            vec4 result = (1.0 - fogAmount) * (color * texturecolor) + fogAmount * vec4(0.0, 0.0, 0.0, 1.0);
+            result.a = alpha;
+            return result;
+        }
+        #endif
+    ]]
+
+    scene.explosionShader = love.graphics.newShader[[
+        uniform highp mat4 view;
+        uniform highp float time;
+        uniform highp vec3 cameraPos;
+        varying highp float dist;
+        varying highp float percentDone;
+        varying highp float explosionSizeV;
+
+
+        #ifdef VERTEX
+        attribute highp vec3 endPosition;
+        attribute highp float startTime;
+        attribute highp float explosionSize;
+        vec4 position(mat4 transform_projection, vec4 vertex_position) {
+            if (time - startTime > 0.5) {
+                //return vec4(0.0, -1000.0, 0.0, 1.0);
+            }
+
+            float percent = (time - startTime) / 0.5;
+            vec4 vec = vec4(endPosition.x, endPosition.y, endPosition.z, 1.0) - vertex_position;
+            vec4 pos = vertex_position + vec * percent;
+            dist = length(vec3(pos.x, pos.y, pos.z) - cameraPos);
+            percentDone = percent;
+            explosionSizeV = explosionSize;
+            vec4 result = view * pos;
+            return result;
+        }
+        #endif
+
+
+        #ifdef PIXEL
+        vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float radius = 0.5;
+            radius = explosionSizeV * radius / dist;
+            if (radius > 0.5) {
+                radius = 0.5;
+            }
+            if(length(coord) > radius)
+                discard;
+            return vec4(1.0,0.0,0.0,1.0);
         }
         #endif
     ]]
@@ -298,6 +425,7 @@ function engine.newScene(renderWidth, renderHeight)
         t:rotate(t, a.x, cpml.vec3.unit_y)
         t:rotate(t, a.z, cpml.vec3.unit_z)
         t:translate(t, p)
+        self.threeShader:send("time_elapsed", TimeElapsed)
         self.threeShader:send("view", Camera.perspective * TransposeMatrix(Camera.transform))
         self.threeShader:send("light_pos", self.lightPos)
         self.threeShader:send("view_pos", {Camera.pos.x, Camera.pos.y, Camera.pos.z})
@@ -317,6 +445,14 @@ function engine.newScene(renderWidth, renderHeight)
                 love.graphics.setWireframe(false)
             end
         end
+
+        love.graphics.setShader(self.explosionShader)
+        self.explosionShader:send("time", TimeElapsed)
+        self.explosionShader:send("view", Camera.perspective * TransposeMatrix(Camera.transform))
+        self.explosionShader:send("cameraPos", {Camera.pos.x, Camera.pos.y, Camera.pos.z})
+        love.graphics.setPointSize(200)
+        love.graphics.draw(self.explosionParticles, -self.renderWidth/2, -self.renderHeight/2)
+
 
         love.graphics.setCanvas()
         love.graphics.setShader()

@@ -14,10 +14,15 @@ x    xxx   x
 x xxxx   x x
 x      x   x
 xx xxxxxxxxx
+            
+            
+            
+            
   s         
 ]]
 
 Blocks = {}
+Ghosts = {}
 WonGame = false
 
 function resetGame()
@@ -36,6 +41,19 @@ function ground()
         {-WorldSize, 0, WorldSize,  WorldSize * textureSize,WorldSize * textureSize,  0,1,0},
         {-WorldSize, 0, -WorldSize,  WorldSize * textureSize,0,  0,1,0}
     }, groundImage, 1.0)
+end
+
+
+function ghost(x, z)
+    local model = rect({
+        {-0.5, 0, 0,  0,1,  10,10,10},
+        {-0.5, 1.2, 0,  0,0,  10,10,10},
+        {0.5, 1.2, 0,  1,0,  10,10,10},
+        {0.5, 0, 0,  1,1,  10,10,10}
+    }, ghostImage, 1.0)
+    
+    table.insert(Ghosts, {x, z, model})
+    model:setTransform({x, 0, z})
 end
 
 function box(x, z)
@@ -148,6 +166,8 @@ function love.load()
     wallImage = love.graphics.newImage("assets/wall.png")
     wallImage:setWrap('repeat','repeat')
 
+    ghostImage = love.graphics.newImage("assets/ghost.png")
+
     skyboxImage = love.graphics.newImage("assets/skybox.png")
     skyboxImage:setWrap('repeat','repeat')
 
@@ -172,8 +192,21 @@ function love.load()
 
     ground()
     skybox()
-
+    ghost(3, 8)
+    
     resetGame()
+end
+
+function love.mousepressed( x, y, button, istouch, presses )
+    if button == 1 then
+        local Camera = Engine.camera
+        local pos = Camera.pos
+
+        local cameraAngle = Camera.angle.x - math.pi/2.0
+        local distance = 5.0
+
+        Scene:shoot(pos.x, pos.y, pos.z, pos.x + math.cos(cameraAngle) * distance, pos.y, pos.z + math.sin(cameraAngle) * distance)
+    end
 end
 
 function isInSquare(pos, x, z)
@@ -280,6 +313,11 @@ function love.update(dt)
     if canMove then
         pos.x = newPos.x
         pos.z = newPos.z
+    end
+
+    local cameraAngle = Camera.angle.x
+    for k,v in pairs(Ghosts) do
+        v[3]:setTransform({v[1] + 0.5, math.cos(TimeElapsed * 1.2) * -0.05, v[2] + 0.5}, {-cameraAngle, cpml.vec3.unit_y})
     end
 
     if isInSquare(Engine.camera.pos, EndPosition[1], EndPosition[2]) then
