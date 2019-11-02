@@ -99,6 +99,7 @@ function engine.newModel(verts, texture, coords, color, format, scale)
     m.dead = false
     m.wireframe = false
     m.culling = false
+    m.timeOffset = math.random(0, 10)
 
     m.setVerts = function (self, verts)
         if #verts > 0 then
@@ -196,12 +197,12 @@ function engine.newScene(renderWidth, renderHeight)
         {"startTime", "float", 1},
         {"explosionSize", "float", 1}
     }, explosionParticleVerts, "points")
-    --scene.explosionParticles:setTexture(love.graphics.newImage("assets/explosion.png"))
+    scene.explosionParticles:setTexture(love.graphics.newImage("assets/particle.png"))
     scene.currentExplosionIdx = 1
 
-    SPREAD = 0.2
+    SPREAD = 0.05
     scene.shoot = function (self, x, y, z, targetX, targetY, targetZ)
-        for i = 1, 40 do
+        for i = 1, 10 do
             local rx = (math.random() - 0.5)
             local ry = (math.random() - 0.5)
             local rz = (math.random() - 0.5)
@@ -213,7 +214,7 @@ function engine.newScene(renderWidth, renderHeight)
                 targetX + rx * SPREAD,
                 targetY + ry * SPREAD,
                 targetZ + rz * SPREAD,
-                TimeElapsed + math.random() * 0.3,
+                TimeElapsed + math.random() * 0.2,
                 1.0,
             }
 
@@ -339,7 +340,7 @@ function engine.newScene(renderWidth, renderHeight)
         attribute highp float explosionSize;
         vec4 position(mat4 transform_projection, vec4 vertex_position) {
             if (time - startTime > 0.5) {
-                //return vec4(0.0, -1000.0, 0.0, 1.0);
+                return vec4(0.0, -1000.0, 0.0, 1.0);
             }
 
             float percent = (time - startTime) / 0.5;
@@ -364,7 +365,17 @@ function engine.newScene(renderWidth, renderHeight)
             }
             if(length(coord) > radius)
                 discard;
-            return vec4(1.0,0.0,0.0,1.0);
+
+            float percentX = ((coord.x / radius) + 1.0) / 2.0;
+            float percentY = ((coord.y / radius) + 1.0) / 2.0;
+
+            vec4 result = Texel(texture, vec2(percentX, percentY));
+            if (result.a < 0.01 || result.r + result.g + result.b < 0.3) {
+                discard;
+            }
+            result.a = 0.5;
+
+            return result;
         }
         #endif
     ]]
@@ -425,7 +436,6 @@ function engine.newScene(renderWidth, renderHeight)
         t:rotate(t, a.x, cpml.vec3.unit_y)
         t:rotate(t, a.z, cpml.vec3.unit_z)
         t:translate(t, p)
-        self.threeShader:send("time_elapsed", TimeElapsed)
         self.threeShader:send("view", Camera.perspective * TransposeMatrix(Camera.transform))
         self.threeShader:send("light_pos", self.lightPos)
         self.threeShader:send("view_pos", {Camera.pos.x, Camera.pos.y, Camera.pos.z})
@@ -435,6 +445,12 @@ function engine.newScene(renderWidth, renderHeight)
             if model ~= nil and model.visible and #model.verts > 0 then
                 self.threeShader:send("model_matrix", model.transform)
                 self.threeShader:send("model_matrix_inverse", TransposeMatrix(InvertMatrix(model.transform)))
+
+                local time = TimeElapsed
+                if model.timeOffset then
+                    time = time + model.timeOffset
+                end
+                self.threeShader:send("time_elapsed", time)
 
                 love.graphics.setWireframe(model.wireframe)
                 if model.culling then

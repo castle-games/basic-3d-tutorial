@@ -52,7 +52,7 @@ function ghost(x, z)
         {0.5, 0, 0,  1,1,  10,10,10}
     }, ghostImage, 1.0)
     
-    table.insert(Ghosts, {x, z, model})
+    table.insert(Ghosts, {x, z, model, true})
     model:setTransform({x, 0, z})
 end
 
@@ -193,6 +193,10 @@ function love.load()
     ground()
     skybox()
     ghost(3, 8)
+
+    for i = 1, 100 do
+        ghost(math.random( 0, 10 ), math.random( 0, 10 ))
+    end
     
     resetGame()
 end
@@ -203,9 +207,28 @@ function love.mousepressed( x, y, button, istouch, presses )
         local pos = Camera.pos
 
         local cameraAngle = Camera.angle.x - math.pi/2.0
-        local distance = 5.0
+        local distance = 40.0
 
-        Scene:shoot(pos.x, pos.y, pos.z, pos.x + math.cos(cameraAngle) * distance, pos.y, pos.z + math.sin(cameraAngle) * distance)
+        local startBulletVec = {math.cos(Camera.angle.x) * 0.3, math.sin(Camera.angle.x) * 0.3}
+        Scene:shoot(pos.x + startBulletVec[1], pos.y- 0.1, pos.z + startBulletVec[2], pos.x + math.cos(cameraAngle) * distance, pos.y, pos.z + math.sin(cameraAngle) * distance)
+        Scene:shoot(pos.x - startBulletVec[1], pos.y- 0.1, pos.z - startBulletVec[2], pos.x + math.cos(cameraAngle) * distance, pos.y, pos.z + math.sin(cameraAngle) * distance)
+
+        local pos = {pos.x, pos.z}
+        local shootVec = {math.cos(cameraAngle) * 0.1, math.sin(cameraAngle) * 0.1}
+
+        for i = 0, 10 * 10 do
+            pos[1] = pos[1] + shootVec[1]
+            pos[2] = pos[2] + shootVec[2]
+
+            for k,v in pairs(Ghosts) do
+                local ghostX = v[1] + 0.5
+                local ghostZ = v[2] + 0.5
+                local dist = math.sqrt(math.pow(pos[1] - ghostX, 2.0) + math.pow(pos[2] - ghostZ, 2.0))
+                if dist < 0.2 then
+                    v[4] = false
+                end
+            end
+        end
     end
 end
 
@@ -317,7 +340,12 @@ function love.update(dt)
 
     local cameraAngle = Camera.angle.x
     for k,v in pairs(Ghosts) do
-        v[3]:setTransform({v[1] + 0.5, math.cos(TimeElapsed * 1.2) * -0.05, v[2] + 0.5}, {-cameraAngle, cpml.vec3.unit_y})
+        local y = math.cos(TimeElapsed * 1.2) * -0.05 - 0.2
+        if not v[4] then
+            y = -10
+        end
+
+        v[3]:setTransform({v[1] + 0.5, y, v[2] + 0.5}, {-cameraAngle, cpml.vec3.unit_y})
     end
 
     if isInSquare(Engine.camera.pos, EndPosition[1], EndPosition[2]) then
